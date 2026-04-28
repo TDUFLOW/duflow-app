@@ -1,5 +1,5 @@
 from flask import Flask, render_template_string, request, jsonify
-import json, os, base64
+import json, os
 
 app = Flask(__name__)
 DATA_FILE = 'data.json'
@@ -46,19 +46,19 @@ HTML = '''<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DU FLOW</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap');
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Montserrat',sans-serif;background:#080808;color:#fff;min-height:100vh;}
-
 .nav{position:sticky;top:0;z-index:200;background:rgba(8,8,8,0.97);backdrop-filter:blur(10px);
   border-bottom:1px solid #1a1a1a;display:flex;align-items:center;padding:0 40px;height:64px;gap:8px;}
-.nav-logo{font-size:18px;font-weight:900;letter-spacing:6px;color:#fff;margin-right:30px;flex-shrink:0;}
+.nav-logo{font-size:18px;font-weight:900;letter-spacing:6px;color:#fff;margin-right:30px;}
 .nav-logo span{color:#c8a96e;}
 .nav-btn{padding:8px 16px;font-family:'Montserrat',sans-serif;font-size:9px;font-weight:600;
-  letter-spacing:2px;color:#ffffff;background:transparent;border:none;cursor:pointer;
+  letter-spacing:2px;color:#666;background:transparent;border:none;cursor:pointer;
   transition:all 0.2s;text-transform:uppercase;}
 .nav-btn:hover{color:#ccc;}
 .nav-btn.active{color:#c8a96e;}
@@ -66,152 +66,126 @@ body{font-family:'Montserrat',sans-serif;background:#080808;color:#fff;min-heigh
 .btn-gold{padding:9px 20px;background:#c8a96e;color:#000;font-family:'Montserrat',sans-serif;
   font-size:9px;font-weight:700;letter-spacing:2px;border:none;cursor:pointer;transition:all 0.2s;}
 .btn-gold:hover{background:#e0c080;}
-
 .page{display:none;padding:50px 40px;}
 .page.active{display:block;}
-.page-title{font-size:9px;letter-spacing:4px;color:#ffffff;text-transform:uppercase;margin-bottom:40px;}
-
-/* TOAST */
+.page-title{font-size:9px;letter-spacing:4px;color:#555;text-transform:uppercase;margin-bottom:40px;}
 .toast{position:fixed;bottom:30px;right:30px;background:#c8a96e;color:#000;
   padding:12px 24px;font-size:9px;letter-spacing:2px;font-weight:700;z-index:999;
   opacity:0;transition:opacity 0.3s;pointer-events:none;}
 .toast.show{opacity:1;}
-
-/* KPIs */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#1a1a1a;margin-bottom:1px;}
 .kpi{background:#0a0a0a;padding:32px 28px;}
 .kpi-val{font-size:42px;font-weight:900;letter-spacing:-2px;line-height:1;margin-bottom:8px;}
 .kpi-val.gold{color:#c8a96e;}
 .kpi-val.white{color:#e8e8e8;}
-.kpi-lbl{font-size:8px;letter-spacing:3px;color:#ffffff;text-transform:uppercase;}
-
-/* Charts */
+.kpi-lbl{font-size:8px;letter-spacing:3px;color:#444;text-transform:uppercase;}
 .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#1a1a1a;margin-bottom:1px;}
 .chart-card{background:#0a0a0a;padding:32px;}
-.chart-card h4{font-size:8px;letter-spacing:3px;color:#ffffff;text-transform:uppercase;margin-bottom:25px;}
+.chart-card h4{font-size:8px;letter-spacing:3px;color:#444;text-transform:uppercase;margin-bottom:25px;}
 .chart-wrap{position:relative;height:230px;}
-
-/* Series cards on dashboard */
-.series-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1px;background:#1a1a1a;}
-.sc{background:#0a0a0a;padding:24px;cursor:pointer;transition:background 0.15s;}
-.sc:hover{background:#0f0f0f;}
-.sc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
-.sc-nom{font-size:11px;font-weight:700;letter-spacing:2px;color:#ddd;}
-.sc-ca{font-size:16px;font-weight:900;color:#c8a96e;}
-.sc-bar-bg{height:1px;background:#1a1a1a;margin-bottom:12px;}
-.sc-bar{height:100%;background:#c8a96e;transition:width 0.5s;}
-.sc-bottom{display:flex;justify-content:space-between;}
-.sc-stat{font-size:9px;letter-spacing:1px;color:#ffffff;}
-.sc-stat b{color:#ffffff;display:block;font-size:13px;font-weight:700;margin-bottom:2px;}
-
-/* MES SERIES PAGE */
+.section-title{font-size:8px;letter-spacing:3px;color:#444;text-transform:uppercase;
+  padding:24px 0 20px;border-bottom:1px solid #0f0f0f;margin-bottom:0;}
+.series-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1px;background:#1a1a1a;}
+.sg-card{background:#0a0a0a;padding:24px;cursor:pointer;transition:background 0.2s;}
+.sg-card:hover{background:#0f0f0f;}
+.sg-nom{font-size:11px;font-weight:700;letter-spacing:3px;margin-bottom:12px;color:#e0e0e0;}
+.sg-bar-bg{height:1px;background:#1a1a1a;margin-bottom:10px;}
+.sg-bar{height:100%;background:#c8a96e;transition:width 0.5s;}
+.sg-info{display:flex;justify-content:space-between;font-size:9px;color:#444;}
+.sg-info span:last-child{color:#c8a96e;font-weight:700;}
 .series-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1px;background:#1a1a1a;}
 .sl-card{background:#0a0a0a;padding:28px;}
 .sl-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
-.sl-nom{font-size:13px;font-weight:900;letter-spacing:3px;color:#ffffff;}
+.sl-nom{font-size:13px;font-weight:900;letter-spacing:3px;color:#fff;}
 .sl-count{font-size:28px;font-weight:900;color:#c8a96e;line-height:1;}
-.sl-count small{font-size:12px;color:#ffffff;font-weight:400;}
-.sl-info{font-size:9px;color:#ffffff;letter-spacing:1px;margin-bottom:16px;}
+.sl-count small{font-size:12px;color:#555;font-weight:400;}
+.sl-info{font-size:9px;color:#444;letter-spacing:1px;margin-bottom:16px;}
 .sl-bar-bg{height:1px;background:#1a1a1a;margin-bottom:16px;}
 .sl-bar{height:100%;background:#c8a96e;}
 .sl-actions{display:flex;gap:8px;}
-.btn-voir{flex:1;padding:10px;background:transparent;border:1px solid #222;color:#ffffff;
+.btn-voir{flex:1;padding:10px;background:transparent;border:1px solid #222;color:#888;
   font-family:'Montserrat',sans-serif;font-size:8px;letter-spacing:2px;font-weight:600;
   cursor:pointer;transition:all 0.2s;text-transform:uppercase;}
 .btn-voir:hover{border-color:#c8a96e;color:#c8a96e;}
-.btn-sup{padding:10px 12px;background:transparent;border:1px solid #1a1a1a;color:#ffffff;
+.btn-sup{padding:10px 12px;background:transparent;border:1px solid #1a1a1a;color:#333;
   font-size:11px;cursor:pointer;transition:all 0.2s;}
 .btn-sup:hover{border-color:#ff3333;color:#ff3333;}
-
-/* DETAIL */
 .back-btn{display:inline-flex;align-items:center;gap:8px;font-size:9px;letter-spacing:2px;
-  color:#ffffff;cursor:pointer;margin-bottom:35px;background:none;border:none;
+  color:#555;cursor:pointer;margin-bottom:35px;background:none;border:none;
   font-family:'Montserrat',sans-serif;transition:color 0.2s;text-transform:uppercase;}
 .back-btn:hover{color:#c8a96e;}
 .detail-hdr{display:flex;justify-content:space-between;align-items:flex-end;
   padding-bottom:28px;border-bottom:1px solid #1a1a1a;margin-bottom:35px;}
 .detail-hdr h1{font-size:36px;font-weight:900;letter-spacing:6px;margin-bottom:6px;color:#f0f0f0;}
-.detail-hdr p{font-size:10px;color:#ffffff;letter-spacing:1px;}
+.detail-hdr p{font-size:10px;color:#444;letter-spacing:1px;}
 .detail-right{text-align:right;}
 .detail-big{font-size:48px;font-weight:900;color:#c8a96e;line-height:1;}
-.detail-big small{font-size:18px;color:#ffffff;font-weight:400;}
-.detail-ca{font-size:12px;color:#ffffff;margin-top:6px;}
-
-/* TABLE */
-.tbl-wrap{background:#0a0a0a;border:1px solid #1a1a1a;overflow:hidden;}
+.detail-big small{font-size:18px;color:#444;font-weight:400;}
+.detail-ca{font-size:12px;color:#555;margin-top:6px;}
 table{width:100%;border-collapse:collapse;}
-thead th{padding:14px 20px;font-size:8px;letter-spacing:2px;color:#ffffff;
-  text-align:left;font-weight:600;background:#080808;border-bottom:1px solid #141414;}
-tbody tr{border-bottom:1px solid #0f0f0f;transition:background 0.1s;}
+thead tr{border-bottom:1px solid #111;}
+thead th{font-size:8px;letter-spacing:2px;color:#333;text-transform:uppercase;padding:12px 16px;text-align:left;font-weight:600;}
+tbody tr{border-bottom:1px solid #0a0a0a;transition:background 0.15s;}
 tbody tr:hover{background:#0d0d0d;}
-tbody tr:last-child{border-bottom:none;}
-td{padding:18px 20px;font-size:12px;vertical-align:middle;color:#cccccc;}
-.num-cell{width:36px;height:36px;display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:11px;background:#0d0d0d;border:1px solid #1a1a1a;color:#ffffff;}
-.num-cell.sold{background:rgba(200,169,110,0.08);border-color:rgba(200,169,110,0.25);color:#c8a96e;}
-.badge{display:inline-block;padding:4px 10px;font-size:8px;letter-spacing:2px;font-weight:700;}
-.b-sold{background:rgba(200,169,110,0.1);color:#c8a96e;border:1px solid rgba(200,169,110,0.2);}
-.b-free{background:#0d0d0d;color:#ffffff;border:1px solid #141414;}
-.buyer{font-weight:700;letter-spacing:1px;color:#e0e0e0;}
-.buyer-s{font-size:10px;color:#ffffff;margin-top:2px;}
+tbody td{padding:14px 16px;font-size:11px;vertical-align:middle;}
+.num-cell{width:28px;height:28px;border:1px solid #1e1e1e;display:flex;align-items:center;
+  justify-content:center;font-size:9px;font-weight:700;color:#444;}
+.num-cell.sold{border-color:#c8a96e;color:#c8a96e;}
+.badge{display:inline-block;padding:3px 10px;font-size:8px;letter-spacing:2px;font-weight:700;}
+.b-sold{background:rgba(200,169,110,0.1);color:#c8a96e;}
+.b-free{background:#0f0f0f;color:#333;}
+.buyer{font-size:11px;font-weight:700;color:#e0e0e0;}
+.buyer-s{font-size:9px;color:#555;margin-top:2px;}
 .price{color:#c8a96e;font-weight:700;}
-.dim{color:#ffffff;}
-.tb{padding:7px 14px;background:transparent;font-family:'Montserrat',sans-serif;
-  font-size:8px;letter-spacing:1.5px;font-weight:600;cursor:pointer;transition:all 0.2s;border:1px solid;}
+.dim{color:#222;}
+.tb{padding:6px 12px;font-family:'Montserrat',sans-serif;font-size:8px;letter-spacing:1px;
+  font-weight:600;cursor:pointer;background:transparent;transition:all 0.2s;border:1px solid;}
 .tb-sell{border-color:rgba(200,169,110,0.4);color:#c8a96e;}
 .tb-sell:hover{background:#c8a96e;color:#000;}
-.tb-edit{border-color:#1e1e1e;color:#ffffff;margin-right:6px;}
-.tb-edit:hover{border-color:#ffffff;color:#e0e0e0;}
+.tb-edit{border-color:#1e1e1e;color:#555;margin-right:6px;}
+.tb-edit:hover{border-color:#fff;color:#e0e0e0;}
 .tb-del{border-color:#141414;color:#2a2a2a;width:30px;height:30px;padding:0;
   display:inline-flex;align-items:center;justify-content:center;}
 .tb-del:hover{border-color:#ff3333;color:#ff3333;}
 .acts{display:flex;align-items:center;gap:6px;}
-
-/* PHOTO SECTION */
 .photo-section{margin-top:40px;border:1px solid #1a1a1a;background:#0a0a0a;}
 .photo-section-hdr{padding:20px 24px;border-bottom:1px solid #141414;display:flex;justify-content:space-between;align-items:center;}
-.photo-section-hdr span{font-size:8px;letter-spacing:3px;color:#ffffff;text-transform:uppercase;}
+.photo-section-hdr span{font-size:8px;letter-spacing:3px;color:#444;text-transform:uppercase;}
 .photo-upload-zone{padding:30px;text-align:center;}
 .photo-preview{width:100%;max-height:500px;object-fit:contain;display:block;}
 .photo-placeholder{border:1px dashed #1e1e1e;padding:50px;cursor:pointer;transition:all 0.2s;display:flex;
   flex-direction:column;align-items:center;gap:12px;}
 .photo-placeholder:hover{border-color:#c8a96e;}
-.photo-placeholder .icon{font-size:28px;color:#ffffff;}
-.photo-placeholder p{font-size:9px;letter-spacing:2px;color:#ffffff;text-transform:uppercase;}
-.photo-placeholder p small{display:block;font-size:8px;color:#2a2a2a;margin-top:4px;letter-spacing:1px;}
+.photo-placeholder .icon{font-size:28px;color:#333;}
+.photo-placeholder p{font-size:9px;letter-spacing:2px;color:#444;text-transform:uppercase;}
+.photo-placeholder p small{display:block;font-size:8px;color:#2a2a2a;margin-top:4px;}
 #photo-input{display:none;}
-.btn-change-photo{padding:8px 16px;background:transparent;border:1px solid #222;color:#ffffff;
+.photo-actions{display:flex;gap:8px;justify-content:center;margin-top:16px;}
+.btn-change-photo{padding:8px 16px;background:transparent;border:1px solid #222;color:#666;
   font-family:'Montserrat',sans-serif;font-size:8px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
 .btn-change-photo:hover{border-color:#c8a96e;color:#c8a96e;}
-.btn-del-photo{padding:8px 12px;background:transparent;border:1px solid #141414;color:#2a2a2a;
+.btn-del-photo{padding:8px 12px;background:transparent;border:1px solid #141414;color:#333;
   font-family:'Montserrat',sans-serif;font-size:8px;cursor:pointer;transition:all 0.2s;}
 .btn-del-photo:hover{border-color:#ff3333;color:#ff3333;}
-
-/* MODAL */
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.93);z-index:500;
   align-items:center;justify-content:center;}
 .overlay.show{display:flex;}
 .modal{background:#0c0c0c;border:1px solid #1e1e1e;width:460px;max-width:95vw;padding:44px;}
 .modal-title{font-size:10px;letter-spacing:4px;color:#c8a96e;margin-bottom:32px;text-transform:uppercase;}
 .field{margin-bottom:18px;}
-.field label{display:block;font-size:8px;letter-spacing:2px;color:#ffffff;margin-bottom:8px;text-transform:uppercase;}
+.field label{display:block;font-size:8px;letter-spacing:2px;color:#555;margin-bottom:8px;text-transform:uppercase;}
 .field input,.field select{width:100%;background:#111;border:1px solid #1a1a1a;color:#e8e8e8;
   padding:12px 14px;font-family:'Montserrat',sans-serif;font-size:12px;outline:none;transition:border 0.2s;}
 .field input:focus,.field select:focus{border-color:#c8a96e;}
-.field input::placeholder{color:#ffffff;}
+.field input::placeholder{color:#333;}
 .field select option{background:#111;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
 .modal-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:32px;
   padding-top:22px;border-top:1px solid #111;}
-.btn-cancel{padding:10px 20px;background:transparent;border:1px solid #1e1e1e;color:#ffffff;
+.btn-cancel{padding:10px 20px;background:transparent;border:1px solid #1e1e1e;color:#555;
   font-family:'Montserrat',sans-serif;font-size:8px;letter-spacing:2px;cursor:pointer;transition:all 0.2s;}
-.btn-cancel:hover{color:#e0e0e0;border-color:#ffffff;}
-
+.btn-cancel:hover{color:#e0e0e0;border-color:#555;}
 .ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:35px;}
-.ph h2{font-size:9px;letter-spacing:4px;color:#ffffff;text-transform:uppercase;}
-
-.section-title{font-size:8px;letter-spacing:3px;color:#ffffff;text-transform:uppercase;
-  padding:24px 0 20px;border-bottom:1px solid #0f0f0f;margin-bottom:0;}
 </style>
 </head>
 <body>
@@ -240,7 +214,7 @@ td{padding:18px 20px;font-size:12px;vertical-align:middle;color:#cccccc;}
     <div class="chart-card"><h4>CA par série</h4><div class="chart-wrap"><canvas id="chartBar"></canvas></div></div>
     <div class="chart-card"><h4>Répartition des ventes</h4><div class="chart-wrap"><canvas id="chartDoughnut"></canvas></div></div>
   </div>
-  <div style="background:#1a1a1a;height:1px;margin-bottom:0;"></div>
+  <div style="background:#1a1a1a;height:1px;"></div>
   <div class="section-title">Aperçu des séries — cliquez pour voir le détail</div>
   <div class="series-grid" id="dash-series"></div>
 </div>
@@ -267,27 +241,24 @@ td{padding:18px 20px;font-size:12px;vertical-align:middle;color:#cccccc;}
       <div class="detail-ca" id="d-ca">0 €</div>
     </div>
   </div>
-
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr>
-        <th>N°</th><th>Statut</th><th>Acheteur</th><th>Valeur</th><th>Expo / Contexte</th><th>Date</th><th>Actions</th>
-      </tr></thead>
-      <tbody id="detail-tbody"></tbody>
-    </table>
-  </div>
-
-  <!-- PHOTO SECTION -->
+  <table>
+    <thead>
+      <tr>
+        <th>N°</th><th>Statut</th><th>Acheteur</th><th>Valeur</th><th>Expo</th><th>Date</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="detail-tbody"></tbody>
+  </table>
   <div class="photo-section">
     <div class="photo-section-hdr">
       <span>Photo de la série</span>
-      <div id="photo-actions" style="display:none;gap:8px;display:none;">
+      <div class="photo-actions" id="photo-actions" style="display:none;">
         <button class="btn-change-photo" onclick="document.getElementById('photo-input').click()">Changer</button>
         <button class="btn-del-photo" onclick="deletePhoto()">Supprimer</button>
       </div>
     </div>
-    <div class="photo-upload-zone" id="photo-zone">
-      <div class="photo-placeholder" onclick="document.getElementById('photo-input').click()" id="photo-placeholder">
+    <div class="photo-upload-zone">
+      <div class="photo-placeholder" id="photo-placeholder" onclick="document.getElementById('photo-input').click()">
         <div class="icon">+</div>
         <p>Ajouter une photo<small>JPG, PNG — cliquez pour choisir</small></p>
       </div>
@@ -305,14 +276,14 @@ td{padding:18px 20px;font-size:12px;vertical-align:middle;color:#cccccc;}
     <input type="hidden" id="mv-serie-id">
     <input type="hidden" id="mv-numero">
     <div class="field-row">
-      <div class="field"><label>Nom</label><input id="mv-nom" type="text" placeholder="DUPONT"></div>
-      <div class="field"><label>Prénom</label><input id="mv-prenom" type="text" placeholder="Jean"></div>
+      <div class="field"><label>Nom</label><input id="mv-nom" type="text" placeholder="NOM"></div>
+      <div class="field"><label>Prénom</label><input id="mv-prenom" type="text" placeholder="Prénom"></div>
     </div>
     <div class="field-row">
-      <div class="field"><label>Valeur (€)</label><input id="mv-valeur" type="number" placeholder="350"></div>
-      <div class="field"><label>Date</label><input id="mv-date" type="text" placeholder="01/01/2025"></div>
+      <div class="field"><label>Valeur (€)</label><input id="mv-valeur" type="number" placeholder="0"></div>
+      <div class="field"><label>Date</label><input id="mv-date" type="date"></div>
     </div>
-    <div class="field"><label>Expo / Contexte</label><input id="mv-expo" type="text" placeholder="Expo Paris, Direct..."></div>
+    <div class="field"><label>Expo / Contexte</label><input id="mv-expo" type="text" placeholder="ex: MAM 2024"></div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closeModal('modal-vente')">Annuler</button>
       <button class="btn-gold" onclick="saveVente()">Enregistrer</button>
@@ -354,119 +325,123 @@ async function loadData(){
   render();
 }
 
-function showPage(name, btn){
+function showPage(page, btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+name).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
   if(btn) btn.classList.add('active');
-  if(name==='dashboard') renderDashboard();
-  if(name==='series') renderSeriesList();
+  if(page==='dashboard') renderCharts();
 }
 
 function render(){
   renderDashboard();
-  renderSeriesList();
-  if(currentSerieId) renderDetail(currentSerieId);
+  renderSeries();
 }
 
-function getVentesForSerie(sid){ return DATA.ventes.filter(v=>v.serie_id===sid); }
-function getCA(ventes){ return ventes.reduce((s,v)=>s+v.valeur,0); }
-
 function renderDashboard(){
-  const totalCA = getCA(DATA.ventes);
-  document.getElementById('k-ca').textContent = totalCA.toLocaleString('fr-FR') + ' €';
+  const ca = DATA.ventes.reduce((s,v)=>s+v.valeur,0);
+  const dispo = DATA.series.reduce((s,serie)=>{
+    const vendus = DATA.ventes.filter(v=>v.serie_id===serie.id).length;
+    return s + (serie.exemplaires - vendus);
+  },0);
+  document.getElementById('k-ca').textContent = ca.toLocaleString('fr-FR')+' €';
   document.getElementById('k-ventes').textContent = DATA.ventes.length;
   document.getElementById('k-series').textContent = DATA.series.length;
-  document.getElementById('k-dispo').textContent = DATA.series.reduce((s,serie)=>
-    s + (serie.exemplaires - getVentesForSerie(serie.id).length), 0);
+  document.getElementById('k-dispo').textContent = dispo;
 
-  const seriesAvecVentes = DATA.series.filter(s=>getVentesForSerie(s.id).length>0);
-  const barLabels = seriesAvecVentes.map(s=>s.nom);
-  const barVals = seriesAvecVentes.map(s=>getCA(getVentesForSerie(s.id)));
+  const dashGrid = document.getElementById('dash-series');
+  dashGrid.innerHTML = '';
+  DATA.series.forEach(serie=>{
+    const vendus = DATA.ventes.filter(v=>v.serie_id===serie.id).length;
+    const pct = Math.round(vendus/serie.exemplaires*100);
+    const div = document.createElement('div');
+    div.className = 'sg-card';
+    div.onclick = ()=>{ showDetail(serie.id); };
+    div.innerHTML = `
+      <div class="sg-nom">${serie.nom}</div>
+      <div class="sg-bar-bg"><div class="sg-bar" style="width:${pct}%"></div></div>
+      <div class="sg-info"><span>${vendus} vendu${vendus>1?'s':''}</span><span>${pct}%</span></div>`;
+    dashGrid.appendChild(div);
+  });
+
+  renderCharts();
+}
+
+function renderCharts(){
+  const seriesAvecVentes = DATA.series.filter(s=>DATA.ventes.some(v=>v.serie_id===s.id));
+  const barLabels = seriesAvecVentes.map(s=>s.nom.length>12?s.nom.substring(0,12)+'…':s.nom);
+  const barVals = seriesAvecVentes.map(s=>DATA.ventes.filter(v=>v.serie_id===s.id).reduce((sum,v)=>sum+v.valeur,0));
 
   if(barChart) barChart.destroy();
-  barChart = new Chart(document.getElementById('chartBar').getContext('2d'),{
+  const ctxBar = document.getElementById('chartBar');
+  if(!ctxBar) return;
+  barChart = new Chart(ctxBar.getContext('2d'),{
     type:'bar',
     data:{labels:barLabels,datasets:[{data:barVals,backgroundColor:'rgba(200,169,110,0.7)',borderColor:'#c8a96e',borderWidth:1}]},
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString('fr-FR')+' €'}}},
       scales:{
-        x:{ticks:{color:'#ffffff',font:{family:'Montserrat',size:9}},grid:{color:'#111'}},
-        y:{ticks:{color:'#ffffff',font:{family:'Montserrat',size:9},callback:v=>v+'€'},grid:{color:'#111'}}
+        x:{ticks:{color:'#555',font:{family:'Montserrat',size:9}},grid:{color:'#111'}},
+        y:{ticks:{color:'#555',font:{family:'Montserrat',size:9},callback:v=>v+'€'},grid:{color:'#111'}}
       }
     }
   });
 
   if(doughnutChart) doughnutChart.destroy();
+  const ctxD = document.getElementById('chartDoughnut');
+  if(!ctxD) return;
   const colors=['#c8a96e','#8b6914','#e0c080','#6b4f0f','#d4b57a','#a07828','#f0d090','#503800'];
-  doughnutChart = new Chart(document.getElementById('chartDoughnut').getContext('2d'),{
+  doughnutChart = new Chart(ctxD.getContext('2d'),{
     type:'doughnut',
     data:{labels:barLabels,datasets:[{data:barVals,backgroundColor:colors,borderWidth:0}]},
     options:{
       responsive:true,maintainAspectRatio:false,cutout:'65%',
-      plugins:{legend:{position:'right',labels:{color:'#ffffff',font:{family:'Montserrat',size:9},boxWidth:10}}}
+      plugins:{legend:{position:'right',labels:{color:'#666',font:{family:'Montserrat',size:9},boxWidth:10}}}
     }
   });
-
-  document.getElementById('dash-series').innerHTML = DATA.series.map(s=>{
-    const v = getVentesForSerie(s.id);
-    const ca = getCA(v);
-    const pct = Math.round((v.length/s.exemplaires)*100);
-    return `<div class="sc" onclick="openDetail(${s.id})">
-      <div class="sc-top">
-        <div class="sc-nom">${s.nom}</div>
-        <div class="sc-ca">${ca>0?ca.toLocaleString('fr-FR')+' €':''}</div>
-      </div>
-      <div class="sc-bar-bg"><div class="sc-bar" style="width:${pct}%"></div></div>
-      <div class="sc-bottom">
-        <div class="sc-stat"><b>${v.length}</b>vendus</div>
-        <div class="sc-stat"><b>${s.exemplaires-v.length}</b>libres</div>
-        <div class="sc-stat"><b>${s.exemplaires}</b>total</div>
-      </div>
-    </div>`;
-  }).join('');
 }
 
-function renderSeriesList(){
-  document.getElementById('series-list').innerHTML = DATA.series.map(s=>{
-    const v = getVentesForSerie(s.id);
-    const ca = getCA(v);
-    const pct = Math.round((v.length/s.exemplaires)*100);
-    return `<div class="sl-card">
+function renderSeries(){
+  const list = document.getElementById('series-list');
+  list.innerHTML = '';
+  DATA.series.forEach(serie=>{
+    const vendus = DATA.ventes.filter(v=>v.serie_id===serie.id).length;
+    const pct = Math.round(vendus/serie.exemplaires*100);
+    const div = document.createElement('div');
+    div.className = 'sl-card';
+    div.innerHTML = `
       <div class="sl-top">
-        <div class="sl-nom">${s.nom}</div>
-        <div class="sl-count">${v.length}<small> / ${s.exemplaires}</small></div>
+        <div class="sl-nom">${serie.nom}</div>
+        <div class="sl-count">${vendus}<small>/${serie.exemplaires}</small></div>
       </div>
-      <div class="sl-info">${s.papier} · ${s.appareil} · ${ca.toLocaleString('fr-FR')} €</div>
+      <div class="sl-info">${serie.papier} · ${serie.appareil}</div>
       <div class="sl-bar-bg"><div class="sl-bar" style="width:${pct}%"></div></div>
       <div class="sl-actions">
-        <button class="btn-voir" onclick="openDetail(${s.id})">Voir le détail</button>
-        <button class="btn-sup" onclick="deleteSerie(${s.id})">✕</button>
-      </div>
-    </div>`;
-  }).join('');
+        <button class="btn-voir" onclick="showDetail(${serie.id})">Voir le détail</button>
+        <button class="btn-sup" onclick="deleteSerie(${serie.id})">✕</button>
+      </div>`;
+    list.appendChild(div);
+  });
 }
 
-function openDetail(sid){
+function showDetail(sid){
   currentSerieId = sid;
-  showPage('detail', null);
-  renderDetail(sid);
-}
-
-function renderDetail(sid){
   const serie = DATA.series.find(s=>s.id===sid);
   if(!serie) return;
-  const ventes = getVentesForSerie(sid);
-  const ca = getCA(ventes);
+  const ventes = DATA.ventes.filter(v=>v.serie_id===sid);
+  const ca = ventes.reduce((s,v)=>s+v.valeur,0);
+
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-detail').classList.add('active');
 
   document.getElementById('d-nom').textContent = serie.nom;
   document.getElementById('d-info').textContent = `${serie.papier} · ${serie.appareil} · ${serie.exemplaires} exemplaires`;
   document.getElementById('d-sold').textContent = ventes.length;
   document.getElementById('d-total').textContent = serie.exemplaires;
-  document.getElementById('d-ca').textContent = ca.toLocaleString('fr-FR') + ' €';
+  document.getElementById('d-ca').textContent = ca.toLocaleString('fr-FR')+' €';
 
-  // Photo
   const preview = document.getElementById('photo-preview');
   const placeholder = document.getElementById('photo-placeholder');
   const photoActions = document.getElementById('photo-actions');
@@ -492,8 +467,8 @@ function renderDetail(sid){
         <td><span class="badge b-sold">VENDU</span></td>
         <td><div class="buyer">${v.nom}</div><div class="buyer-s">${v.prenom}</div></td>
         <td class="price">${v.valeur.toLocaleString('fr-FR')} €</td>
-        <td style="color:#ffffff">${v.expo||'—'}</td>
-        <td style="color:#ffffff">${v.date||'—'}</td>
+        <td style="color:#555">${v.expo||'—'}</td>
+        <td style="color:#555">${v.date||'—'}</td>
         <td><div class="acts">
           <button class="tb tb-edit" onclick="editVente(${v.id})">Modifier</button>
           <button class="tb tb-del" onclick="deleteVente(${v.id})">✕</button>
@@ -517,11 +492,11 @@ function uploadPhoto(input){
     const r = await fetch('/api/serie/photo',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({id: currentSerieId, photo: e.target.result})
+      body:JSON.stringify({id:currentSerieId, photo:e.target.result})
     });
     DATA = await r.json();
     showToast();
-    renderDetail(currentSerieId);
+    showDetail(currentSerieId);
   };
   reader.readAsDataURL(file);
 }
@@ -530,15 +505,15 @@ async function deletePhoto(){
   const r = await fetch('/api/serie/photo',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({id: currentSerieId, photo: ''})
+    body:JSON.stringify({id:currentSerieId, photo:''})
   });
   DATA = await r.json();
   showToast();
-  renderDetail(currentSerieId);
+  showDetail(currentSerieId);
 }
 
 function openVente(serieId, numero){
-  document.getElementById('mv-title').textContent = 'Vente — N° ' + numero;
+  document.getElementById('mv-title').textContent = 'Vente — N° '+numero;
   document.getElementById('mv-vente-id').value = '';
   document.getElementById('mv-serie-id').value = serieId;
   document.getElementById('mv-numero').value = numero;
@@ -549,7 +524,7 @@ function openVente(serieId, numero){
 function editVente(vid){
   const v = DATA.ventes.find(x=>x.id===vid);
   if(!v) return;
-  document.getElementById('mv-title').textContent = 'Modifier — N° ' + v.numero;
+  document.getElementById('mv-title').textContent = 'Modifier — N° '+v.numero;
   document.getElementById('mv-vente-id').value = v.id;
   document.getElementById('mv-serie-id').value = v.serie_id;
   document.getElementById('mv-numero').value = v.numero;
@@ -564,21 +539,21 @@ function editVente(vid){
 async function saveVente(){
   const vid = document.getElementById('mv-vente-id').value;
   const payload = {
+    id: vid ? parseInt(vid) : null,
     serie_id: parseInt(document.getElementById('mv-serie-id').value),
     numero: parseInt(document.getElementById('mv-numero').value),
-    nom: document.getElementById('mv-nom').value.toUpperCase(),
+    nom: document.getElementById('mv-nom').value,
     prenom: document.getElementById('mv-prenom').value,
     valeur: parseFloat(document.getElementById('mv-valeur').value)||0,
     date: document.getElementById('mv-date').value,
     expo: document.getElementById('mv-expo').value
   };
-  if(vid) payload.id = parseInt(vid);
   const url = vid ? '/api/vente/update' : '/api/vente/add';
   const r = await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
   DATA = await r.json();
   closeModal('modal-vente');
   showToast();
-  render();
+  showDetail(currentSerieId);
 }
 
 async function deleteVente(vid){
@@ -586,7 +561,7 @@ async function deleteVente(vid){
   const r = await fetch('/api/vente/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:vid})});
   DATA = await r.json();
   showToast();
-  render();
+  showDetail(currentSerieId);
 }
 
 function openNewSerie(){ document.getElementById('modal-serie').classList.add('show'); }
